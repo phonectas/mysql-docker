@@ -15,7 +15,7 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 set -e
 
-echo "[Entrypoint] MySQL Docker Image 8.4.7-1.2.23-server"
+echo "[Entrypoint] MySQL Docker Image 8.4.8-1.2.24-server"
 # Fetch value from server config
 # We use mysqld --verbose --help instead of my_print_defaults because the
 # latter only show values present in config files, and not server defaults
@@ -95,10 +95,18 @@ if [ "$1" = 'mysqld' ]; then
 		# will be restarted using the user's option.
 
 		echo '[Entrypoint] Initializing database'
-		"$@" --user=$MYSQLD_USER --initialize-insecure  --default-time-zone=+00:00
+		if [ -n "" ]; then
+			"$@" --user=$MYSQLD_USER --initialize-insecure --default-time-zone=+00:00 
+		else
+			"$@" --user=$MYSQLD_USER --initialize-insecure  --default-time-zone=+00:00
+		fi
 
 		echo '[Entrypoint] Database initialized'
-		"$@" --user=$MYSQLD_USER --daemonize --skip-networking --socket="$SOCKET" --default-time-zone=+00:00
+		if [ -n "" ]; then
+			"$@" --user=$MYSQLD_USER --daemonize --skip-networking --socket="$SOCKET" --default-time-zone=+00:00 
+		else
+			"$@" --user=$MYSQLD_USER --daemonize --skip-networking --socket="$SOCKET" --default-time-zone=+00:00
+		fi
 
 		# To avoid using password on commandline, put it in a temporary file.
 		# The file is only populated when and if the root password is set.
@@ -220,11 +228,16 @@ EOF
 		echo "[Entrypoint] MYSQL_INITIALIZE_ONLY is set, exiting without starting MySQL..."
 		exit 0
 	else
-		echo "[Entrypoint] Starting MySQL 8.4.7-1.2.23-server"
+		echo "[Entrypoint] Starting MySQL 8.4.8-1.2.24-server"
 	fi
 	# 4th value of /proc/$pid/stat is the ppid, same as getppid()
 	export MYSQLD_PARENT_PID=$(cat /proc/$$/stat|cut -d\  -f4)
-	exec "$@" --user=$MYSQLD_USER
+	# Add debug flags if specified (for debug builds)
+	if [ -n "" ]; then
+		exec "$@" --user=$MYSQLD_USER 
+	else
+		exec "$@" --user=$MYSQLD_USER
+	fi
 else
 	exec "$@"
 fi
